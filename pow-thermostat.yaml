@@ -12,8 +12,8 @@ substitutions:
   # target temperature when nobody home
   eco_temperature: "19"     
   temp_variation: "0.5" 
-  mac1: F1:7B:55:8E:04:68
-  mac2: 00:03:AA:C5:72:F4
+  mac1: F1:7B:55:8E:04:68 #smart band
+  mac2: 00:03:AA:C5:72:F4 #phone
   mac3: cc
 
 number:
@@ -86,32 +86,32 @@ esp32_ble_tracker:
     # window: 5s # try with 300ms if you don't have LAN module
     # active: false
     #continuous: True
-    
-  on_ble_service_data_advertise:
-    - service_uuid: 477ed199-29ff-4a1d-ae24-f5c0377af319
-      then: 
-        - lambda: |-
-            ESP_LOGI("ble_adv", "Phone ibeacon found");
-        - number.set:
-            id: target
-            value: 21.2
-        - script.execute: comfort_timeout
-    - service_uuid: bdba186b-db99-436d-b8bc-f084daffc236
-      then: 
-        - lambda: |-
-            ESP_LOGI("ble_adv", "Phone altbeacon found");
-        - number.set:
-            id: target
-            value: 21.4
-        - script.execute: comfort_timeout
-    - service_uuid: 2F234454-CF6D-4A0F-ADF2-F4911BA9FFA6
-      then: 
-        - lambda: |-
-            ESP_LOGI("ble_adv", "Phone ibeacon Scope found");
-        - number.set:
-            id: target
-            value: 21.6
-        - script.execute: comfort_timeout
+
+  # on_ble_service_data_advertise:
+  #   - service_uuid: 477ed199-29ff-4a1d-ae24-f5c0377af319
+  #     then: 
+  #       - lambda: |-
+  #           ESP_LOGI("ble_adv", "Phone ibeacon found");
+  #       - number.set:
+  #           id: target
+  #           value: 21.2
+  #       - script.execute: comfort_timeout
+  #   - service_uuid: bdba186b-db99-436d-b8bc-f084daffc236
+  #     then: 
+  #       - lambda: |-
+  #           ESP_LOGI("ble_adv", "Phone altbeacon found");
+  #       - number.set:
+  #           id: target
+  #           value: 21.4
+  #       - script.execute: comfort_timeout
+  #   - service_uuid: 2F234454-CF6D-4A0F-ADF2-F4911BA9FFA6
+  #     then: 
+  #       - lambda: |-
+  #           ESP_LOGI("ble_adv", "Phone ibeacon Scope found");
+  #       - number.set:
+  #           id: target
+  #           value: 21.6
+  #       - script.execute: comfort_timeout
 
   on_ble_advertise:
     - mac_address: $mac1
@@ -266,8 +266,21 @@ sensor:
 
 binary_sensor:
   - platform: ble_presence
-    mac_address: 00:03:AA:C5:72:F4
-    name: "Cosmo phone"
+    mac_address: $mac1
+    name: "Smart Band 7"
+    filters:
+      - delayed_off: 30 min
+    on_press:
+      then:
+        - number.set:
+            id: target
+            value: $comfort_temperature
+    on_release:
+      then:
+        - number.set:
+            id: target
+            value: $eco_temperature
+
   - platform: gpio
     pin: GPIO00
     id: reset
@@ -293,6 +306,7 @@ binary_sensor:
                 binary_sensor.template.publish:
                   id: page
                   state: ON
+
   - platform: template # this is a fake sensor to tell the screen which info to show on display
     id: page
     publish_initial_state: true
