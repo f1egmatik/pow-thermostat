@@ -11,9 +11,9 @@ substitutions:
 
   # target temperature when nobody home
   eco_temperature: "19"     
-  temp_variation: "0.5"
-  mac1: aa
-  mac2: bb
+  temp_variation: "0.5" 
+  mac1: F1:7B:55:8E:04:68
+  mac2: 00:03:AA:C5:72:F4
   mac3: cc
 
 number:
@@ -24,14 +24,14 @@ number:
     min_value: 5
     max_value: 35
     step: 0.5  
-    initial_value: 21.0
+    initial_value: $default_temperature
     restore_value: True
     id: target
     on_value_range:
-      - below: !lambda "return id(temp).state - 0.5;"
+      - below: !lambda "return id(temp).state - $temp_variation;"
         then:
           - switch.turn_off: relay_1    # turn_off for heater / turn_on for cooler
-      - above: !lambda "return id(temp).state + 0.5;"
+      - above: !lambda "return id(temp).state + $temp_variation;"
         then:
           - switch.turn_on: relay_1     # turn_on for heater / turn_off for cooler
 
@@ -86,6 +86,7 @@ esp32_ble_tracker:
     # window: 5s # try with 300ms if you don't have LAN module
     # active: false
     #continuous: True
+    
   on_ble_service_data_advertise:
     - service_uuid: 477ed199-29ff-4a1d-ae24-f5c0377af319
       then: 
@@ -113,33 +114,34 @@ esp32_ble_tracker:
         - script.execute: comfort_timeout
 
   on_ble_advertise:
-    - mac_address: 13:94:6C:0D:88:55
+    - mac_address: $mac1
       then:
         - lambda: |-
-            ESP_LOGI("ble_adv", "New BLE device");
-            ESP_LOGI("ble_adv", "  address: %s", x.address_str().c_str());
-            ESP_LOGI("ble_adv", "  name: %s", x.get_name().c_str());
-            ESP_LOGI("ble_adv", "  Advertised service UUIDs:");
+            ESP_LOGD("ble_adv", "New BLE device");
+            ESP_LOGD("ble_adv", "  address: %s", x.address_str().c_str());
+            ESP_LOGD("ble_adv", "  name: %s", x.get_name().c_str());
+            ESP_LOGD("ble_adv", "  Advertised service UUIDs:");
             for (auto uuid : x.get_service_uuids()) {
-                ESP_LOGI("ble_adv", "    - %s", uuid.to_string().c_str());
+                ESP_LOGD("ble_adv", "    - %s", uuid.to_string().c_str());
             }
-    - mac_address: 00:03:AA:C5:72:F4
+        - script.execute: comfort_timeout
+    - mac_address: $mac2
       then:
         - lambda: |-
-            ESP_LOGI("ble_adv", "New BLE device");
-            ESP_LOGI("ble_adv", "  address: %s", x.address_str().c_str());
-            ESP_LOGI("ble_adv", "  name: %s", x.get_name().c_str());
-            ESP_LOGI("ble_adv", "  Advertised service UUIDs:");
+            ESP_LOGD("ble_adv", "New BLE device");
+            ESP_LOGD("ble_adv", "  address: %s", x.address_str().c_str());
+            ESP_LOGD("ble_adv", "  name: %s", x.get_name().c_str());
+            ESP_LOGD("ble_adv", "  Advertised service UUIDs:");
             for (auto uuid : x.get_service_uuids()) {
-                ESP_LOGI("ble_adv", "    - %s", uuid.to_string().c_str());
+                ESP_LOGD("ble_adv", "    - %s", uuid.to_string().c_str());
             }
             ESP_LOGD("ble_adv", "  Advertised service data:");
             for (auto data : x.get_service_datas()) {
                 ESP_LOGD("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
             }
-            ESP_LOGI("ble_adv", "  Advertised manufacturer data:");
+            ESP_LOGD("ble_adv", "  Advertised manufacturer data:");
             for (auto data : x.get_manufacturer_datas()) {
-                ESP_LOGI("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
+                ESP_LOGD("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
             }
         - script.execute: comfort_timeout
 
@@ -182,10 +184,10 @@ sensor:
       device_class: temperature
       unit_of_measurement: °C
       on_value_range:
-        - below: !lambda "return id(target).state - 0.5;"
+        - below: !lambda "return id(target).state - $temp_variation;"
           then:
             - switch.turn_on: relay_1   # turn_on for heater / turn_off for cooler
-        - above: !lambda "return id(target).state + 0.5;"
+        - above: !lambda "return id(target).state + $temp_variation;"
           then:
             - switch.turn_off: relay_1  # turn_off for heater / turn_on for cooler
     humidity:
@@ -384,8 +386,12 @@ script:
   - id: comfort_timeout
     mode: restart
     then: 
-      - delay: 30 min
       - number.set:
           id: target
-          value: 19
+          value: $comfort_temperature
+      - delay: 30 min
+      - lambda: ESP_LOGI("ble_adv", "Comfort mode off");
+      - number.set:
+          id: target
+          value: $eco_temperature
           #value: !lambda "return id(eco_temperature).state;"
