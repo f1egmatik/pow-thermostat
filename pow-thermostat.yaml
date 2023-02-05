@@ -10,11 +10,23 @@ substitutions:
   comfort_temperature: "21"
 
   # target temperature when nobody home
-  eco_temperature: "19"     
+  eco_temperature: "19"
+
   temp_variation: "0.5" 
-  mac1: F1:7B:55:8E:04:68 #smart band
-  mac2: 00:03:AA:C5:72:F4 #phone
-  mac3: cc
+
+  #tracked ble devices
+  mac1: F1:7B:55:8E:04:68
+  name1: SmartBand7
+  mac2: 00:03:AA:C5:72:F4
+  name2: Cosmo
+  mac3: 00:03:AA:C5:72:F5
+  name3: reserve
+  uuid1: 2F234454-CF6D-4A0F-ADF2-F4911BA9FFA6
+  name4: Cosmo iBeacon
+  uuid2: 3F234454-CF6D-4A0F-ADF2-F4911BA9FFA7
+  name5: reserve2
+  uuid3: 4F234454-CF6D-4A0F-ADF2-F4911BA9FFA8
+  name6: reserve3
 
 number:
   - platform: template
@@ -113,37 +125,37 @@ esp32_ble_tracker:
   #           value: 21.6
   #       - script.execute: comfort_timeout
 
-  on_ble_advertise:
-    - mac_address: $mac1
-      then:
-        - lambda: |-
-            ESP_LOGD("ble_adv", "New BLE device");
-            ESP_LOGD("ble_adv", "  address: %s", x.address_str().c_str());
-            ESP_LOGD("ble_adv", "  name: %s", x.get_name().c_str());
-            ESP_LOGD("ble_adv", "  Advertised service UUIDs:");
-            for (auto uuid : x.get_service_uuids()) {
-                ESP_LOGD("ble_adv", "    - %s", uuid.to_string().c_str());
-            }
-        - script.execute: comfort_timeout
-    - mac_address: $mac2
-      then:
-        - lambda: |-
-            ESP_LOGD("ble_adv", "New BLE device");
-            ESP_LOGD("ble_adv", "  address: %s", x.address_str().c_str());
-            ESP_LOGD("ble_adv", "  name: %s", x.get_name().c_str());
-            ESP_LOGD("ble_adv", "  Advertised service UUIDs:");
-            for (auto uuid : x.get_service_uuids()) {
-                ESP_LOGD("ble_adv", "    - %s", uuid.to_string().c_str());
-            }
-            ESP_LOGD("ble_adv", "  Advertised service data:");
-            for (auto data : x.get_service_datas()) {
-                ESP_LOGD("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
-            }
-            ESP_LOGD("ble_adv", "  Advertised manufacturer data:");
-            for (auto data : x.get_manufacturer_datas()) {
-                ESP_LOGD("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
-            }
-        - script.execute: comfort_timeout
+  # on_ble_advertise:
+  #   - mac_address: $mac1
+  #     then:
+  #       - lambda: |-
+  #           ESP_LOGD("ble_adv", "New BLE device");
+  #           ESP_LOGD("ble_adv", "  address: %s", x.address_str().c_str());
+  #           ESP_LOGD("ble_adv", "  name: %s", x.get_name().c_str());
+  #           ESP_LOGD("ble_adv", "  Advertised service UUIDs:");
+  #           for (auto uuid : x.get_service_uuids()) {
+  #               ESP_LOGD("ble_adv", "    - %s", uuid.to_string().c_str());
+  #           }
+  #       - script.execute: comfort_timeout
+  #   - mac_address: $mac2
+  #     then:
+  #       - lambda: |-
+  #           ESP_LOGD("ble_adv", "New BLE device");
+  #           ESP_LOGD("ble_adv", "  address: %s", x.address_str().c_str());
+  #           ESP_LOGD("ble_adv", "  name: %s", x.get_name().c_str());
+  #           ESP_LOGD("ble_adv", "  Advertised service UUIDs:");
+  #           for (auto uuid : x.get_service_uuids()) {
+  #               ESP_LOGD("ble_adv", "    - %s", uuid.to_string().c_str());
+  #           }
+  #           ESP_LOGD("ble_adv", "  Advertised service data:");
+  #           for (auto data : x.get_service_datas()) {
+  #               ESP_LOGD("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
+  #           }
+  #           ESP_LOGD("ble_adv", "  Advertised manufacturer data:");
+  #           for (auto data : x.get_manufacturer_datas()) {
+  #               ESP_LOGD("ble_adv", "    - %s: (length %i)", data.uuid.to_string().c_str(), data.data.size());
+  #           }
+  #       - script.execute: comfort_timeout
 
 #esp32_ble_tracker:
 #  scan_parameters:
@@ -177,7 +189,7 @@ sensor:
 
   - platform: xiaomi_lywsd03mmc
     mac_address: "A4:C1:38:15:A7:96"
-    bindkey: "d28f0fa324df76fa7b7c92a79324b44f"
+    bindkey: "e9483313c1f724de5c10b40b8dd26f7c"
     temperature:
       name: "Temperature"
       id: temp
@@ -267,9 +279,40 @@ sensor:
 binary_sensor:
   - platform: ble_presence
     mac_address: $mac1
-    name: "Smart Band 7"
+    id: ble1
+    name: BLE Presence $name1
+
+  - platform: ble_presence
+    mac_address: $mac2
+    id: ble2
+    name: BLE Presence $name2
+
+  - platform: ble_presence
+    mac_address: $mac3
+    id: ble3
+    name: BLE Presence $name3
+
+  # Presence based on iBeacon UUID
+  - platform: ble_presence
+    ibeacon_uuid: $uuid1
+    id: ble4
+    name: BLE Presence $name4
+
+  - platform: ble_presence
+    ibeacon_uuid: $uuid1
+    id: ble5
+    name: BLE Presence $name5
+
+  - platform: ble_presence
+    ibeacon_uuid: $uuid1
+    id: ble6
+    name: BLE Presence $name6
+
+  - platform: template
+    name: "BLE Presence"
+    lambda: return ble1 or ble2 or ble3 or ble4 or ble5 or ble6;
     filters:
-      - delayed_off: 30 min
+      - delayed_off: 20 min
     on_press:
       then:
         - number.set:
@@ -396,16 +439,15 @@ interval:
         else:
           - light.turn_off: wifi_status_led
 
-script: 
-  - id: comfort_timeout
-    mode: restart
-    then: 
-      - number.set:
-          id: target
-          value: $comfort_temperature
-      - delay: 30 min
-      - lambda: ESP_LOGI("ble_adv", "Comfort mode off");
-      - number.set:
-          id: target
-          value: $eco_temperature
-          #value: !lambda "return id(eco_temperature).state;"
+# script: 
+#   - id: comfort_timeout
+#     mode: restart
+#     then: 
+#       - number.set:
+#           id: target
+#           value: $comfort_temperature
+#       - delay: 30 min
+#       - lambda: ESP_LOGI("ble_adv", "Comfort mode off");
+#       - number.set:
+#           id: target
+#           value: $eco_temperature
