@@ -299,18 +299,18 @@ binary_sensor:
     name: BLE Presence $name4
 
   - platform: ble_presence
-    ibeacon_uuid: $uuid1
+    ibeacon_uuid: $uuid2
     id: ble5
     name: BLE Presence $name5
 
   - platform: ble_presence
-    ibeacon_uuid: $uuid1
+    ibeacon_uuid: $uuid3
     id: ble6
     name: BLE Presence $name6
 
   - platform: template
     name: "BLE Presence"
-    lambda: return ble1 or ble2 or ble3 or ble4 or ble5 or ble6;
+    lambda: return id(ble1).state or id(ble2).state or id(ble3).state or id(ble4).state or id(ble5).state or id(ble6).state;
     filters:
       - delayed_off: 20 min
     on_press:
